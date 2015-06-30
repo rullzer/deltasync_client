@@ -74,10 +74,6 @@ struct rcksum_state {
     struct {
         int hashhit, weakhit, stronghit, checksummed;
     } stats;
-
-    /* Temp file for output */
-    char *filename;
-    int fd;
 };
 
 #define BITHASHBITS 3

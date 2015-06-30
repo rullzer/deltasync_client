@@ -37,7 +37,6 @@ void rcksum_end(struct rcksum_state* z);
  * Once you have transferred out the file handle, you can no longer read and write data through librcksum - it has handed it over to you, and can use it no more itself.
  * If you transfer out the filename, you are responsible for renaming it to something useful. If you don't transfer out the filename, librcksum will unlink it at rcksum_end.
  */
-char* rcksum_filename(struct rcksum_state* z);
 int rcksum_filehandle(struct rcksum_state* z);
 
 void rcksum_add_target_block(struct rcksum_state* z, zs_blockid b, struct rsum r, void* checksum);
@@ -45,9 +44,6 @@ void rcksum_add_target_block(struct rcksum_state* z, zs_blockid b, struct rsum r
 int rcksum_submit_blocks(struct rcksum_state* z, const unsigned char* data, zs_blockid bfrom, zs_blockid bto);
 int rcksum_submit_source_data(struct rcksum_state* z, unsigned char* data, size_t len, off_t offset);
 int rcksum_submit_source_file(struct rcksum_state* z, FILE* f);
-
-/* This reads back in data which is already known. */
-int rcksum_read_known_data(struct rcksum_state* z, unsigned char* buf, off_t offset, size_t len);
 
 /* rcksum_needed_block_ranges tells you what blocks, within the given range,
  * are still unknown. It returns a list of block ranges in r[]

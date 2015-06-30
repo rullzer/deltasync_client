@@ -12,17 +12,6 @@
 
 #include "zsync.h"
 
-struct zsync_state {
-	struct rcksum_state *rs;
-
-	int filelen;
-	int blocks;
-	size_t blocksize;
-
-	char *checksum;
-	const char *checksum_method;
-};
-
 struct zsync_state *read_zsync_control_file(const char *fn) {
 	struct zsync_state *zs = NULL;
 
@@ -37,7 +26,7 @@ struct zsync_state *read_zsync_control_file(const char *fn) {
 
 void read_seed_file(struct zsync_state *z, const char *fname) {
 	FILE *f = fopen(fname, "r");
-	zsync_submit_source_file(z, f, 1);
+	zsync_submit_source_file(z, f);
 	fclose(f);
 
 	{   /* And print how far we've progressed towards the target file */
@@ -58,15 +47,8 @@ int main(int argc, char **argv) {
 	strcpy(fin, argv[2]);
 	strcpy(fout, argv[3]);
 
-	//Get tmp file
-	char *tmpfile = malloc(sizeof(char) * strlen(fout) + 6);
-	strcpy(tmpfile, fout);
-	strcat(tmpfile, ".part");
-
 	//Step 2 fill availble local data
 	read_seed_file(zs, fin);
-
-	zsync_rename_file(zs, tmpfile);
 
 	//Step 3 Get required byte ranges
 	int nrange;
