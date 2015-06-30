@@ -86,7 +86,7 @@ struct zsync_state *zsync_begin(FILE * f) {
 	char *safelines = NULL;
 
 	/* Allocate memory for the object */
-	struct zsync_state *zs = calloc(sizeof *zs, 1);
+	struct zsync_state *zs = (zsync_state *)calloc(sizeof *zs, 1);
 
 	if (!zs)
 		return NULL;
@@ -228,7 +228,7 @@ off_t *zsync_needed_byte_ranges(struct zsync_state * zs, int *num) {
 		return NULL;
 
 	/* Allocate space for byte ranges */
-	byterange = malloc(2 * nrange * sizeof *byterange);
+	byterange = (off_t *)malloc(2 * nrange * sizeof *byterange);
 	if (!byterange) {
 		free(blrange);
 		return NULL;
@@ -259,7 +259,7 @@ off_t *zsync_missing_byte_range(struct zsync_state *zs, int *num) {
 		return NULL;
 
 	/* Allocate space for byte ranges */
-	byterange = malloc(2 * nrange * sizeof *byterange);
+	byterange = (off_t *)malloc(2 * nrange * sizeof *byterange);
 	if (!byterange) {
 		free(blrange);
 		return NULL;

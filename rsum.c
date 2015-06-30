@@ -275,17 +275,6 @@ int rcksum_submit_source_data(struct rcksum_state *const z, unsigned char *data,
 			return got_blocks;
 		}
 
-#if 0
-		{   /* Catch rolling checksum failure */
-			int k = 0;
-			struct rsum c = rcksum_calc_rsum_block(data + x + bs * k, bs);
-			if (c.a != z->r[k].a || c.b != z->r[k].b) {
-				fprintf(stderr, "rsum miscalc (%d) at %lld\n", k, offset + x);
-				exit(3);
-			}
-		}
-#endif
-
 		{
 			/* # of blocks of the output file we got from this data */
 			int thismatch = 0;
@@ -363,6 +352,97 @@ int rcksum_submit_source_data(struct rcksum_state *const z, unsigned char *data,
 	}
 }
 
+int check_checksum(struct rcksum_state *const z, const struct hash_entry *e, const unsigned char *data, struct rsum *r) {
+
+	const struct hash_entry *e_next = e;
+	while(e_next) {
+
+		e = e_next;
+		e_next = e->next;
+		
+		//Check weak checksum
+		if (e->r.a != (r[0].a & z->rsum_a_mask) || e->r.b != r[0].b) {
+			printf("NOPE\n");
+			continue;
+		}
+
+		//Check weak checksum of next block
+		zs_blockid id = get_HE_blockid(z, e);
+		if (z->blockhashes[id+1].r.a != (r[1].a & z->rsum_a_mask) || z->blockhashes[id+1].r.b != r[1].b) {
+			printf("NOPE2\n");
+			continue;
+		}
+
+		//Check long checksum
+		unsigned char md4sum[MD4_DIGEST_LENGTH];
+		rcksum_calc_checksum(&md4sum[0], data, z->blocksize);
+		if (memcmp(&md4sum[0], z->blockhashes[id].checksum, z->checksum_bytes)) {
+			printf("NOPE3\n");
+			continue;
+		}
+
+		//Check long checksum of next block
+		rcksum_calc_checksum(&md4sum[0], data + z->blocksize, z->blocksize);
+		if (memcmp(&md4sum[0], z->blockhashes[id+1].checksum, z->checksum_bytes)) {
+			printf("NOPE4\n");
+			continue;
+		}
+
+		printf("STRONG HIT\n");
+		exit(-1);
+
+	}
+}
+
+int check_data(struct rcksum_state *z, unsigned char *data, size_t len, size_t offset) {
+	int x = 0;
+	register int bs = z->blocksize;
+	int got_blocks = 0;
+
+	for (;;) {
+		if (x + z->context >= len) {
+			return got_blocks;
+		}
+
+		struct rsum r[2];
+		r[0] = rcksum_calc_rsum_block(data + x, bs);
+		r[1] = rcksum_calc_rsum_block(data + x + bs, bs);
+
+		{
+			const struct hash_entry *e;
+			unsigned int hash = calc_rhash2(z, r[0], r[1]);
+			if (//(z->bithash[(hash & z->bithashmask) >> 3] & (1 << (hash & 7))) != 0
+				/*&&*/ (e = z->rsum_hash[hash & z->hashmask]) != NULL) {
+
+				check_checksum(z, e, data+x, r);
+
+				/* Okay, we have a hash hit. Follow the hash chain and
+				 * check our block against all the entries. */
+			//	thismatch = check_checksums_on_hash_chain(z, e, data + x, 0);
+			//	if (thismatch)
+			//		blocks_matched = z->seq_matches;
+			}
+		}
+
+
+		
+
+		
+		/* Else - advance the window by 1 byte - update the rolling checksum
+		 * and our offset in the buffer */
+		{
+			unsigned char Nc = data[x + bs * 2];
+			unsigned char nc = data[x + bs];
+			unsigned char oc = data[x];
+			UPDATE_RSUM(z->r[0].a, z->r[0].b, oc, nc, z->blockshift);
+			if (z->seq_matches > 1)
+				UPDATE_RSUM(z->r[1].a, z->r[1].b, nc, Nc, z->blockshift);
+		}
+		x++;
+	}
+	return 0;
+}
+
 /* rcksum_submit_source_file(self, stream, progress)
  * Read the given stream, applying the rsync rolling checksum algorithm to
  * identify any blocks of data in common with the target file. Blocks found are
@@ -375,7 +455,7 @@ int rcksum_submit_source_file(struct rcksum_state *z, FILE * f) {
 
 	/* Allocate buffer of 16 blocks */
 	register int bufsize = z->blocksize * 16;
-	unsigned char *buf = malloc(bufsize + z->context);
+	unsigned char *buf = (unsigned char *)malloc(bufsize + z->context);
 
 	build_hash(z);
 
@@ -388,7 +468,6 @@ int rcksum_submit_source_file(struct rcksum_state *z, FILE * f) {
 			len = fread(buf, 1, bufsize, f);
 			in += len;
 		}
-
 		/* Else, move the last context bytes from the end of the buffer to the
 		 * start, and refill the rest of the buffer from the stream. */
 		else {
@@ -397,7 +476,6 @@ int rcksum_submit_source_file(struct rcksum_state *z, FILE * f) {
 			len = z->context + fread(buf + z->context, 1, bufsize - z->context, f);
 		}
 
-		/* If either fread above failed, or EOFed */
 		if (ferror(f)) {
 			perror("fread");
 			free(buf);
@@ -409,7 +487,8 @@ int rcksum_submit_source_file(struct rcksum_state *z, FILE * f) {
 		}
 
 		/* Process the data in the buffer, and report progress */
-		got_blocks += rcksum_submit_source_data(z, buf, len, start_in);
+	//	got_blocks += rcksum_submit_source_data(z, buf, len, start_in);
+		got_blocks += check_data(z, buf, len, start_in);
 	}
 	free(buf);
 	return got_blocks;

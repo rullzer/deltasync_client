@@ -92,15 +92,18 @@ zs_blockid next_known_block(struct rcksum_state *rs, zs_blockid x);
 
 struct hash_entry *calc_hash_entry(void *data, size_t len);
 
+static inline unsigned int calc_rhash2(const struct rcksum_state *const z, const struct rsum r0, const struct rsum r1) {
+	unsigned int h = r0.b;
+
+    h ^= ((z->seq_matches > 1) ? r1.b
+        : r0.a & z->rsum_a_mask) << BITHASHBITS;
+
+	return h;
+}
+
 /* Hash the checksum values for the given hash entry and return the hash value */
-static inline unsigned calc_rhash(const struct rcksum_state *const z,
-                                  const struct hash_entry *const e) {
-    unsigned h = e[0].r.b;
-
-    h ^= ((z->seq_matches > 1) ? e[1].r.b
-        : e[0].r.a & z->rsum_a_mask) << BITHASHBITS;
-
-    return h;
+static inline unsigned int calc_rhash(const struct rcksum_state *const z, const struct hash_entry *const e) {
+	return calc_rhash2(z, e[0].r, e[1].r);
 }
 
 int build_hash(struct rcksum_state *z);

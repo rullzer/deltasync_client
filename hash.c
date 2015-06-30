@@ -63,13 +63,13 @@ int build_hash(struct rcksum_state *z) {
 
     /* Allocate hash based on rsum */
     z->hashmask = (2 << i) - 1;
-    z->rsum_hash = calloc(z->hashmask + 1, sizeof *(z->rsum_hash));
+    z->rsum_hash = (hash_entry **)calloc(z->hashmask + 1, sizeof *(z->rsum_hash));
     if (!z->rsum_hash)
         return 0;
 
     /* Allocate bit-table based on rsum */
     z->bithashmask = (2 << (i + BITHASHBITS)) - 1;
-    z->bithash = calloc(z->bithashmask + 1, 1);
+    z->bithash = (unsigned char *)calloc(z->bithashmask + 1, 1);
     if (!z->bithash) {
         free(z->rsum_hash);
         z->rsum_hash = NULL;

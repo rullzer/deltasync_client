@@ -34,11 +34,9 @@ int main(int argc, char **argv) {
 
 	struct zsync_state *zs = read_zsync_control_file(argv[1]);
 	
-	char *fin = malloc(sizeof(char) * strlen(argv[2]) + 1);
-	char *fout = malloc(sizeof(char) * strlen(argv[3]) + 1);
+	char *fin = (char *)malloc(sizeof(char) * strlen(argv[2]) + 1);
 
 	strcpy(fin, argv[2]);
-	strcpy(fout, argv[3]);
 
 	//Step 2 fill availble local data
 	read_seed_file(zs, fin);

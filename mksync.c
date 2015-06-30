@@ -46,7 +46,7 @@ void write_block_sums(unsigned char *buf, size_t got, FILE * f) {
 }
 
 size_t read_stream_write_blocksums(FILE *fin, FILE * fout) {
-	unsigned char *buf = malloc(blocksize);
+	unsigned char *buf = (unsigned char *)malloc(blocksize);
 
 	size_t len = 0;
 
@@ -81,7 +81,7 @@ void fcopy_hashes(FILE * fin, FILE * fout, size_t rsum_bytes, size_t hash_bytes)
 
 int main(int argc, char **argv) {
 
-	char *infname = malloc(sizeof(char) * strlen(argv[1]) + 1);
+	char *infname = (char *)malloc(sizeof(char) * strlen(argv[1]) + 1);
 	strcpy(infname, argv[1]);
 	FILE *instream = fopen(infname, "rb");
 	free(infname);
@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	char *outfname = malloc(sizeof(char) * strlen(argv[2]) + 1);
+	char *outfname = (char *)malloc(sizeof(char) * strlen(argv[2]) + 1);
 	strcpy(outfname, argv[2]);
 	FILE *fout = fopen(outfname, "wb");
 	free(outfname);
