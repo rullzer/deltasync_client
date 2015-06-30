@@ -25,6 +25,8 @@
 #include "rcksum.h"
 #include "internal.h"
 
+using namespace std;
+
 /* r = range_before_block(self, x)
  * This determines which of the existing known ranges x falls in.
  * It returns -1 if it is inside an existing range (it doesn't tell you which

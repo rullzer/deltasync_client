@@ -36,6 +36,9 @@ struct rcksum_state *rcksum_init(zs_blockid nblocks, size_t blocksize,
 	z->ranges = NULL;
 	z->numranges = 0;
 
+	//offsets
+	z->offsets = new list<size_t>;
+
 	/* Hashes for looking up checksums are generated when needed.
 	 * So initially store NULL so we know there's nothing there yet.
 	 */

@@ -10,6 +10,9 @@ uploadclient: uploadclient.o range.o hash.o rsum.o state.o zsync.o
 zsyncmake: mksync.o rsum.o rcksum.h hash.o range.o
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 	
+%.o: %.cpp
+	$(CC) -c -o $@ $< $(CFLAGS)
+
 %.o: %.c 
 	$(CC) -c -o $@ $< $(CFLAGS)
 

@@ -29,6 +29,8 @@
 
 #include <openssl/md4.h>
 
+using namespace std;
+
 #define UPDATE_RSUM(a, b, oldc, newc, bshift) do { (a) += ((unsigned char)(newc)) - ((unsigned char)(oldc)); (b) += (a) - ((oldc) << (bshift)); } while (0)
 
 /* rcksum_calc_rsum_block(data, data_len)
@@ -352,7 +354,7 @@ int rcksum_submit_source_data(struct rcksum_state *const z, unsigned char *data,
 	}
 }
 
-int check_checksum(struct rcksum_state *const z, const struct hash_entry *e, const unsigned char *data, struct rsum *r) {
+int check_checksum(struct rcksum_state *const z, const struct hash_entry *e, const unsigned char *data, struct rsum *r, int prev_valid, zs_blockid *id) {
 
 	const struct hash_entry *e_next = e;
 	while(e_next) {
@@ -362,42 +364,49 @@ int check_checksum(struct rcksum_state *const z, const struct hash_entry *e, con
 		
 		//Check weak checksum
 		if (e->r.a != (r[0].a & z->rsum_a_mask) || e->r.b != r[0].b) {
-			printf("NOPE\n");
 			continue;
 		}
 
+		//Get the current block id
+		zs_blockid _id = get_HE_blockid(z, e);
+
+		// If the previous block is not valid.. check the next block to verify this one..
 		//Check weak checksum of next block
-		zs_blockid id = get_HE_blockid(z, e);
-		if (z->blockhashes[id+1].r.a != (r[1].a & z->rsum_a_mask) || z->blockhashes[id+1].r.b != r[1].b) {
-			printf("NOPE2\n");
-			continue;
+		if (!prev_valid) {
+			if (z->blockhashes[_id+1].r.a != (r[1].a & z->rsum_a_mask) || z->blockhashes[_id+1].r.b != r[1].b) {
+				continue;
+			}
 		}
 
 		//Check long checksum
 		unsigned char md4sum[MD4_DIGEST_LENGTH];
 		rcksum_calc_checksum(&md4sum[0], data, z->blocksize);
-		if (memcmp(&md4sum[0], z->blockhashes[id].checksum, z->checksum_bytes)) {
-			printf("NOPE3\n");
+		if (memcmp(&md4sum[0], z->blockhashes[_id].checksum, z->checksum_bytes)) {
 			continue;
 		}
 
-		//Check long checksum of next block
-		rcksum_calc_checksum(&md4sum[0], data + z->blocksize, z->blocksize);
-		if (memcmp(&md4sum[0], z->blockhashes[id+1].checksum, z->checksum_bytes)) {
-			printf("NOPE4\n");
-			continue;
+		// If the previous block is not valid.. check the next block to verify this one..
+		if (!prev_valid) {
+			//Check long checksum of next block
+			rcksum_calc_checksum(&md4sum[0], data + z->blocksize, z->blocksize);
+			if (memcmp(&md4sum[0], z->blockhashes[_id+1].checksum, z->checksum_bytes)) {
+				continue;
+			}
 		}
 
-		printf("STRONG HIT\n");
-		exit(-1);
+		*id = _id;
 
+		return 1;
 	}
+	return 0;
 }
 
 int check_data(struct rcksum_state *z, unsigned char *data, size_t len, size_t offset) {
 	int x = 0;
 	register int bs = z->blocksize;
 	int got_blocks = 0;
+
+	int prev_valid = 0;
 
 	for (;;) {
 		if (x + z->context >= len) {
@@ -411,21 +420,35 @@ int check_data(struct rcksum_state *z, unsigned char *data, size_t len, size_t o
 		{
 			const struct hash_entry *e;
 			unsigned int hash = calc_rhash2(z, r[0], r[1]);
-			if (//(z->bithash[(hash & z->bithashmask) >> 3] & (1 << (hash & 7))) != 0
-				/*&&*/ (e = z->rsum_hash[hash & z->hashmask]) != NULL) {
+			if ((z->bithash[(hash & z->bithashmask) >> 3] & (1 << (hash & 7))) != 0
+				&& (e = z->rsum_hash[hash & z->hashmask]) != NULL) {
 
-				check_checksum(z, e, data+x, r);
+				//Get block id
+				zs_blockid id = -1;
 
-				/* Okay, we have a hash hit. Follow the hash chain and
-				 * check our block against all the entries. */
-			//	thismatch = check_checksums_on_hash_chain(z, e, data + x, 0);
-			//	if (thismatch)
-			//		blocks_matched = z->seq_matches;
+				int matched = check_checksum(z, e, data+x, r, prev_valid, &id);
+
+				if (matched) {
+					z->offsets->push_back(offset+x);
+
+					if (id * z->blocksize != offset+x) {
+						printf("Different location!\n");
+						printf("mv %lu %lu %lu\n", id*z->blocksize, offset+x, z->blocksize);
+						exit(-1);
+					}
+
+					got_blocks++;
+					prev_valid = 1;
+
+					x += bs;
+
+					if (x+z->context > len) {
+						return got_blocks;
+					}
+					continue;
+				}
 			}
 		}
-
-
-		
 
 		
 		/* Else - advance the window by 1 byte - update the rolling checksum
@@ -439,6 +462,7 @@ int check_data(struct rcksum_state *z, unsigned char *data, size_t len, size_t o
 				UPDATE_RSUM(z->r[1].a, z->r[1].b, nc, Nc, z->blockshift);
 		}
 		x++;
+		prev_valid = 0;
 	}
 	return 0;
 }
@@ -466,7 +490,7 @@ int rcksum_submit_source_file(struct rcksum_state *z, FILE * f) {
 		/* If this is the start, fill the buffer for the first time */
 		if (!in) {
 			len = fread(buf, 1, bufsize, f);
-			in += len;
+			in += len - z->context;
 		}
 		/* Else, move the last context bytes from the end of the buffer to the
 		 * start, and refill the rest of the buffer from the stream. */
@@ -490,6 +514,7 @@ int rcksum_submit_source_file(struct rcksum_state *z, FILE * f) {
 	//	got_blocks += rcksum_submit_source_data(z, buf, len, start_in);
 		got_blocks += check_data(z, buf, len, start_in);
 	}
+	printf("%d\n", got_blocks);
 	free(buf);
 	return got_blocks;
 }

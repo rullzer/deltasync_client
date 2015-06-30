@@ -22,6 +22,10 @@
  * checksum: hopefully-collision-resistant MD4 checksum of the block
  */
 
+#include <list>
+
+using namespace std;
+
 struct hash_entry {
     struct hash_entry *next;    /* next entry with the same rsum */
     struct rsum r;
@@ -74,6 +78,8 @@ struct rcksum_state {
     struct {
         int hashhit, weakhit, stronghit, checksummed;
     } stats;
+
+	list<size_t> *offsets;
 };
 
 #define BITHASHBITS 3
