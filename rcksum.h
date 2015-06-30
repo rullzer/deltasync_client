@@ -55,3 +55,4 @@ zs_blockid* rcksum_needed_block_ranges(const struct rcksum_state* z, int* num);
 struct rsum __attribute__((pure)) rcksum_calc_rsum_block(const unsigned char* data, size_t len);
 void rcksum_calc_checksum(unsigned char *c, const unsigned char* data, size_t len);
 void parseAdd(struct rcksum_state *z, int len);
+void parseMove(struct rcksum_state *z, int len);

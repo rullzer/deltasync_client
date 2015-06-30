@@ -29,6 +29,8 @@
 
 #include <openssl/md4.h>
 
+#include <map>
+
 using namespace std;
 
 #define UPDATE_RSUM(a, b, oldc, newc, bshift) do { (a) += ((unsigned char)(newc)) - ((unsigned char)(oldc)); (b) += (a) - ((oldc) << (bshift)); } while (0)
@@ -432,8 +434,9 @@ int check_data(struct rcksum_state *z, unsigned char *data, size_t len, size_t o
 					z->offsets->push_back(offset+x);
 
 					if (id * z->blocksize != offset+x) {
-						size_t diff = (offset+x) - id*z->blocksize;
-						z->moves->at(diff).push_back(diff);
+						long long diff = (offset+x) - id*z->blocksize;
+						(*(z->moves))[diff].push_back(id*z->blocksize);
+						printf("%llu: Add to %lld\n", id, diff);
 					}
 
 					got_blocks++;
@@ -531,10 +534,21 @@ void parseAdd(struct rcksum_state *z, int len) {
 			printf("add %u bytes at %u\n", offset-i, i);
 			i = offset;
 		} else {
-			printf("no move\n");
+			//printf("no move\n");
 		}
 
 		i += z->blocksize;
 	} while(!z->offsets->empty());
+}
 
+void parseMove(struct rcksum_state *z, int len) {
+	//printf("move <start> <num> <to>\n");
+	for (map<long long, list<size_t> >::iterator it = z->moves->begin(); it != z->moves->end(); it++) {
+		long long move = it->first;
+		list<size_t> offsets = it->second;
+
+		for(list<size_t>::iterator it2 = offsets.begin(); it2 != offsets.end(); it2++) {
+			printf("move %llu %llu %llu\n", *it2, 2048, (*it2) + move);
+		}
+	}
 }

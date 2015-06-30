@@ -39,6 +39,10 @@ void read_seed_file(struct zsync_state *z, const char *fname) {
 	zsync_submit_source_file(z, f);
 	fclose(f);
 
+	printf("Moves\n");
+	zsync_parseMove(z, get_len(f));
+
+	printf("Adds\n");
 	zsync_parseAdd(z, get_len(f));
 }
 

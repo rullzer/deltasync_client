@@ -85,3 +85,4 @@ void zsync_end_receive(struct zsync_receiver* zr);
 int zsync_receive_data(struct zsync_receiver* zr, const unsigned char* buf, off_t offset, size_t len);
 
 void zsync_parseAdd(struct zsync_state *zs, int len);
+void zsync_parseMove(struct zsync_state *zs, int len);
