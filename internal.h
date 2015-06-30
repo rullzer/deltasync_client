@@ -23,6 +23,7 @@
  */
 
 #include <list>
+#include <map>
 
 using namespace std;
 
@@ -80,6 +81,9 @@ struct rcksum_state {
     } stats;
 
 	list<size_t> *offsets;
+	map<size_t, list<size_t> > *moves;
+	map<size_t, size_t> *add;
+	map<size_t, size_t> *del;
 };
 
 #define BITHASHBITS 3

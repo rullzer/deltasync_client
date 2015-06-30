@@ -288,6 +288,10 @@ int zsync_submit_source_file(struct zsync_state *zs, FILE * f) {
 	return rcksum_submit_source_file(zs->rs, f);
 }
 
+void zsync_parseAdd(struct zsync_state *zs, int len) {
+	return parseAdd(zs->rs, len);
+}
+
 /* zsync_complete(self)
  * Finish a zsync download. Should be called once all blocks have been
  * retrieved successfully. This returns 0 if the file passes the final

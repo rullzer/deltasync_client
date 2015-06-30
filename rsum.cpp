@@ -432,12 +432,12 @@ int check_data(struct rcksum_state *z, unsigned char *data, size_t len, size_t o
 					z->offsets->push_back(offset+x);
 
 					if (id * z->blocksize != offset+x) {
-						printf("Different location!\n");
-						printf("mv %lu %lu %lu\n", id*z->blocksize, offset+x, z->blocksize);
-						exit(-1);
+						size_t diff = (offset+x) - id*z->blocksize;
+						z->moves->at(diff).push_back(diff);
 					}
 
 					got_blocks++;
+					remove_block_from_hash(z, id);
 					prev_valid = 1;
 
 					x += bs;
@@ -511,10 +511,30 @@ int rcksum_submit_source_file(struct rcksum_state *z, FILE * f) {
 		}
 
 		/* Process the data in the buffer, and report progress */
-	//	got_blocks += rcksum_submit_source_data(z, buf, len, start_in);
 		got_blocks += check_data(z, buf, len, start_in);
 	}
 	printf("%d\n", got_blocks);
 	free(buf);
 	return got_blocks;
+}
+
+void parseAdd(struct rcksum_state *z, int len) {
+
+	z->offsets->sort();
+
+	size_t i = 0;
+	do {
+		size_t offset = z->offsets->front();
+		z->offsets->pop_front();
+
+		if (offset - i) {
+			printf("add %u bytes at %u\n", offset-i, i);
+			i = offset;
+		} else {
+			printf("no move\n");
+		}
+
+		i += z->blocksize;
+	} while(!z->offsets->empty());
+
 }

@@ -84,3 +84,4 @@ void zsync_end_receive(struct zsync_receiver* zr);
  * Returns 0 for success; if not, you should not submit more data. */
 int zsync_receive_data(struct zsync_receiver* zr, const unsigned char* buf, off_t offset, size_t len);
 
+void zsync_parseAdd(struct zsync_state *zs, int len);

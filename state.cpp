@@ -38,6 +38,8 @@ struct rcksum_state *rcksum_init(zs_blockid nblocks, size_t blocksize,
 
 	//offsets
 	z->offsets = new list<size_t>;
+	z->moves = new map<size_t, list<size_t>>;
+	z->add = new map<size_t, size_t>;
 
 	/* Hashes for looking up checksums are generated when needed.
 	 * So initially store NULL so we know there's nothing there yet.
