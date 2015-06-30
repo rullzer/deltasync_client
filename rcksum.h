@@ -49,8 +49,7 @@ int rcksum_submit_source_file(struct rcksum_state* z, FILE* f);
  * are still unknown. It returns a list of block ranges in r[]
  * (at most max ranges, so spece for 2*max elements must be there)
  * these are half-open ranges, so r[0] <= x < r[1], r[2] <= x < r[3] etc are needed */
-zs_blockid* rcksum_needed_block_ranges(const struct rcksum_state* z, int* num, zs_blockid from, zs_blockid to);
-int rcksum_blocks_todo(const struct rcksum_state*);
+zs_blockid* rcksum_needed_block_ranges(const struct rcksum_state* z, int* num);
 
 /* For preparing rcksum control files - in both cases len is the block size. */
 struct rsum __attribute__((pure)) rcksum_calc_rsum_block(const unsigned char* data, size_t len);

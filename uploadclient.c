@@ -28,13 +28,6 @@ void read_seed_file(struct zsync_state *z, const char *fname) {
 	FILE *f = fopen(fname, "r");
 	zsync_submit_source_file(z, f);
 	fclose(f);
-
-	{   /* And print how far we've progressed towards the target file */
-		long long done, total;
-
-		zsync_progress(z, &done, &total);
-		printf("\n%lld - %lld = %lld\n", total, done, total - done);
-	}
 }
 
 int main(int argc, char **argv) {
@@ -55,9 +48,9 @@ int main(int argc, char **argv) {
 	off_t *zbyterange = zsync_needed_byte_ranges(zs, &nrange);
 
 	printf("------\n");
-	printf("%d ranges needed\n", nrange);
-	for (unsigned int i = 0; i < nrange; i = i+2) {
-		printf("%d -- %d\n", zbyterange[i], zbyterange[i+1]);
+	printf("%d Ranges need to be removed\n", nrange);
+	for (unsigned int i = 0; i < nrange; i++) {
+		printf("%d -- %d\n", zbyterange[i*2], zbyterange[i*2+1]);
 	}
 
 }

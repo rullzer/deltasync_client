@@ -63,13 +63,9 @@ const char ckmeth_sha1[] = { "SHA-1" };
 struct zsync_state {
 	struct rcksum_state *rs;	/* rsync algorithm state, with block checksums and
 								 * holding the in-progress local version of the target */
-	off_t filelen;			  /* Length of the target file */
-	int blocks;				 /* Number of blocks in the target */
-	size_t blocksize;		   /* Blocksize */
-
-	/* Checksum of the entire file, and checksum alg */
-	char *checksum;
-	const char *checksum_method;
+	off_t filelen;				/* Length of the remote file */
+	int blocks;					/* Number of blocks in the remote file */
+	size_t blocksize;			/* Blocksize */
 };
 
 static int zsync_read_blocksums(struct zsync_state *zs, FILE * f,
@@ -138,14 +134,6 @@ struct zsync_state *zsync_begin(FILE * f) {
 				}
 			}
 			else if (!strcmp(buf, ckmeth_sha1)) {
-				if (strlen(p) != SHA_DIGEST_LENGTH * 2) {
-					fprintf(stderr, "SHA-1 digest from control file is wrong length.\n");
-				}
-				else {
-					zs->checksum = malloc(sizeof(char) * SHA_DIGEST_LENGTH * 2 + 1);
-					strcpy(zs->checksum, p);
-					zs->checksum_method = ckmeth_sha1;
-				}
 			}
 			else if (!safelines || !strstr(safelines, buf)) {
 				fprintf(stderr,
@@ -223,36 +211,6 @@ int zsync_blocksize(const struct zsync_state *zs) {
 	return zs->blocksize;
 }
 
-/* zsync_status(self)
- * Returns  0 if we have no data in the target file yet.
- *		  1 if we have some but not all
- *		  2 or more if we have all.
- * The caller should not rely on exact values 2+; just test >= 2. Values >2 may
- * be used in later versions of libzsync. */
-int zsync_status(const struct zsync_state *zs) {
-	int todo = rcksum_blocks_todo(zs->rs);
-
-	if (todo == zs->blocks)
-		return 0;
-	if (todo > 0)
-		return 1;
-	return 2;				   /* TODO: more? */
-}
-
-/* zsync_progress(self, &got, &total)
- * Writes the number of bytes got, and the total to get, into the long longs.
- */
-void zsync_progress(const struct zsync_state *zs, long long *got,
-					long long *total) {
-
-	if (got) {
-		int todo = zs->blocks - rcksum_blocks_todo(zs->rs);
-		*got = todo * zs->blocksize;
-	}
-	if (total)
-		*total = zs->blocks * zs->blocksize;
-}
-
 /* zsync_needed_byte_ranges(self, &num, type)
  * Returns an array of offsets (2*num of them) for the start and end of num
  * byte ranges in the given type of version of the target (type as returned by
@@ -265,7 +223,38 @@ off_t *zsync_needed_byte_ranges(struct zsync_state * zs, int *num) {
 	int i;
 
 	/* Request all needed block ranges */
-	zs_blockid *blrange = rcksum_needed_block_ranges(zs->rs, &nrange, 0, 0x7fffffff);
+	zs_blockid *blrange = rcksum_needed_block_ranges(zs->rs, &nrange);
+	if (!blrange)
+		return NULL;
+
+	/* Allocate space for byte ranges */
+	byterange = malloc(2 * nrange * sizeof *byterange);
+	if (!byterange) {
+		free(blrange);
+		return NULL;
+	}
+
+	/* Now convert blocks to bytes.
+	 * Note: Must cast one operand to off_t as both blocksize and blrange[x]
+	 * are int's whereas the product must be a file offfset. Needed so we don't
+	 * truncate file offsets to 32bits on 32bit platforms. */
+	for (i = 0; i < nrange; i++) {
+		byterange[2 * i] = blrange[2 * i] * (off_t)zs->blocksize;
+		byterange[2 * i + 1] = blrange[2 * i + 1] * (off_t)zs->blocksize - 1;
+	}
+	free(blrange);	  /* And release the blocks, we're done with them */
+
+	*num = nrange;
+	return byterange;
+}
+
+off_t *zsync_missing_byte_range(struct zsync_state *zs, int *num) {
+	int nrange;
+	off_t *byterange;
+	int i;
+
+	/* Request all needed block ranges */
+	zs_blockid *blrange = rcksum_needed_block_ranges(zs->rs, &nrange);
 	if (!blrange)
 		return NULL;
 
@@ -325,7 +314,6 @@ char *zsync_end(struct zsync_state *zs) {
 	if (zs->rs)
 		rcksum_end(zs->rs);
 
-	free(zs->checksum);
 	free(zs);
 	return NULL;
 }

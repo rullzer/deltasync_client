@@ -54,7 +54,6 @@ void rcksum_add_target_block(struct rcksum_state *z, zs_blockid b,
  * Returns non-zero if successful.
  */
 int build_hash(struct rcksum_state *z) {
-    zs_blockid id;
     int i = 16;
 
     /* Try hash size of 2^i; step down the value of i until we find a good size
@@ -83,7 +82,7 @@ int build_hash(struct rcksum_state *z) {
      * reverse then the resulting hash chains have the blocks in normal order.
      * That's improves our pattern of I/O when writing out identical blocks
      * once we are processing data; we will write them in order. */
-    for (id = z->blocks; id > 0;) {
+    for (zs_blockid id = z->blocks; id > 0;) {
         /* Decrement the loop variable here, and get the hash entry. */
         struct hash_entry *e = z->blockhashes + (--id);
 

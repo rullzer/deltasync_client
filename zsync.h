@@ -34,15 +34,6 @@ time_t zsync_mtime(const struct zsync_state*);
  * This is purely a hint; zsync could ignore it. Returns 0 if successful. */
 int zsync_rename_file(struct zsync_state* zs, const char* f);
 
-/* zsync_status - returns the current state:
- * 0 - no relevant local data found yet.
- * 1 - some data present
- * 2+ - all data downloaded (higher values may be added later to indicate completion
- *      of checksumming and file handle states)
- */
-
-int zsync_status(const struct zsync_state* zs);
-
 /* zsync_progress - returns bytes of the file known so far in *got,
  * and the total (roughly, the file length) in *total */
 void zsync_progress(const struct zsync_state* zs, long long* got, long long* total);
