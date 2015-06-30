@@ -10,20 +10,14 @@
 #include <openssl/sha.h>
 #include <arpa/inet.h>
 
-#define VERSION "OC: 0.1"
+#include "rcksum.h"
+
+#define VERSION "0.0.1"
 
 size_t blocksize = 0;
 
 SHA_CTX shactx;
 
-struct rsum {
-	unsigned short a;
-	unsigned short b;
-};
-
-/**
- * Get size of file
- */
 int get_len(FILE * f) {
 	struct stat s;
 
@@ -33,29 +27,6 @@ int get_len(FILE * f) {
 
 	return s.st_size;
 }
-
-struct rsum rcksum_calc_rsum_block(const unsigned char *data, size_t len) {
-	unsigned short a = 0;
-	unsigned short b = 0;
-
-	while(len) {
-		unsigned char c = *data++;
-		a += c;
-		b += len * c;
-		len--;
-	}
-
-	struct rsum r = {a, b};
-	return r;
-}
-
-void rcksum_calc_checksum(unsigned char *c, const unsigned char *data, size_t len) {
-	MD4_CTX ctx;
-	MD4_Init(&ctx);
-	MD4_Update(&ctx, data, len);
-	MD4_Final(c, &ctx);
-}
-
 
 void write_block_sums(unsigned char *buf, size_t got, FILE * f) {
 	struct rsum r;
@@ -142,7 +113,7 @@ int main(int argc, char **argv) {
 	FILE *fout = fopen(outfname, "wb");
 	free(outfname);
 
-	fprintf(fout, "zsync: " VERSION "\n");
+	fprintf(fout, "oc-zsync: " VERSION "\n");
 	fprintf(fout, "Blocksize: %zu\n", blocksize);
 	fprintf(fout, "Length: %zu\n", len);
 	fprintf(fout, "Hash-Lengths: %d,%d,%d\n", seq_matches, rsum_len, checksum_len);
