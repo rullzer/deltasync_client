@@ -327,8 +327,8 @@ off_t *zsync_needed_byte_ranges(struct zsync_state * zs, int *num) {
  * identify any blocks of data in common with the target file. Blocks found are
  * written to our local copy of the target in progress. Progress reports if
  * progress != 0  */
-int zsync_submit_source_file(struct zsync_state *zs, FILE * f, int progress) {
-    return rcksum_submit_source_file(zs->rs, f, progress);
+int zsync_submit_source_file(struct zsync_state *zs, FILE * f) {
+    return rcksum_submit_source_file(zs->rs, f);
 }
 
 /* int hexdigit(char)

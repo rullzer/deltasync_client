@@ -415,11 +415,10 @@ int rcksum_submit_source_data(struct rcksum_state *const z, unsigned char *data,
  * identify any blocks of data in common with the target file. Blocks found are
  * written to our working target output. Progress reports if progress != 0
  */
-int rcksum_submit_source_file(struct rcksum_state *z, FILE * f, int progress) {
+int rcksum_submit_source_file(struct rcksum_state *z, FILE * f) {
     /* Track progress */
     int got_blocks = 0;
     off_t in = 0;
-    int in_mb = 0;
 
     /* Allocate buffer of 16 blocks */
     register int bufsize = z->blocksize * 16;
@@ -465,10 +464,6 @@ int rcksum_submit_source_file(struct rcksum_state *z, FILE * f, int progress) {
 
         /* Process the data in the buffer, and report progress */
         got_blocks += rcksum_submit_source_data(z, buf, len, start_in);
-        if (progress && in_mb != in / 1000000) {
-            in_mb = in / 1000000;
-            fputc('*', stderr);
-        }
     }
     free(buf);
     return got_blocks;
