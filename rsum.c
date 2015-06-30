@@ -69,8 +69,7 @@ static void write_blocks(struct rcksum_state *z, const unsigned char *data,
 		 * speed up lookups (in particular if there are lots of identical
 		 * blocks), and add the written blocks to the record of blocks that we
 		 * have received and stored the data for */
-		int id;
-		for (id = bfrom; id <= bto; id++) {
+		for (int id = bfrom; id <= bto; id++) {
 			remove_block_from_hash(z, id);
 			add_to_ranges(z, id);
 		}
@@ -88,8 +87,6 @@ static void write_blocks(struct rcksum_state *z, const unsigned char *data,
  */
 int rcksum_submit_blocks(struct rcksum_state *const z, const unsigned char *data,
 						 zs_blockid bfrom, zs_blockid bto) {
-	zs_blockid x;
-	unsigned char md4sum[CHECKSUM_SIZE];
 
 	/* Build checksum hash tables if we don't have them yet */
 	if (!z->rsum_hash)
@@ -97,7 +94,8 @@ int rcksum_submit_blocks(struct rcksum_state *const z, const unsigned char *data
 			return -1;
 
 	/* Check each block */
-	for (x = bfrom; x <= bto; x++) {
+	for (zs_blockid x = bfrom; x <= bto; x++) {
+		unsigned char md4sum[MD4_DIGEST_LENGTH];
 		rcksum_calc_checksum(&md4sum[0], data + ((x - bfrom) << z->blockshift),
 							 z->blocksize);
 		if (memcmp(&md4sum, &(z->blockhashes[x].checksum[0]), z->checksum_bytes)) {
@@ -129,7 +127,7 @@ static int check_checksums_on_hash_chain(struct rcksum_state *const z,
 										 const struct hash_entry *e,
 										 const unsigned char *data,
 										 int onlyone) {
-	unsigned char md4sum[2][CHECKSUM_SIZE];
+	unsigned char md4sum[2][MD4_DIGEST_LENGTH];
 	signed int done_md4 = -1;
 	int got_blocks = 0;
 	register struct rsum r = z->r[0];
@@ -151,7 +149,6 @@ static int check_checksums_on_hash_chain(struct rcksum_state *const z,
 		z->rover = onlyone ? NULL : e->next;
 
 		/* Check weak checksum first */
-
 		z->stats.hashhit++;
 		if (e->r.a != (r.a & z->rsum_a_mask) || e->r.b != r.b) {
 			continue;
