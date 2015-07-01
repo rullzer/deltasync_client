@@ -38,15 +38,30 @@ void read_seed_file(struct zsync_state *z, const char *fname) {
 	FILE *f = fopen(fname, "r");
 	zsync_submit_source_file(z, f);
 	fclose(f);
+}
 
-	printf("Moves\n");
-	zsync_parseMove(z, get_len(f));
+void fix_input(struct zsync_state *z, const char *nameFnew, const char *nameFout, const char *nameForig) {
+	FILE *fnew = fopen(nameFnew, "r");
+	FILE *fout = fopen(nameFout, "r+");
+	FILE *forig = fopen(nameForig, "r");
 
-	printf("Adds\n");
-	zsync_parseAdd(z, get_len(f));
+	int len = get_len(fnew);
+	ftruncate(fileno(fout), len);
+
+	zsync_parseMove(z, fout, forig);
+	zsync_parseAdd(z, fnew, fout, len);
+
+	fclose(fnew);
+	fclose(fout);
+	fclose(forig);
 }
 
 int main(int argc, char **argv) {
+
+	if (argc < 5) {
+		printf("Usage: %s <file.zsync> <file.new> <file.out> <file>\n", argv[0]);
+		return 0;
+	}
 
 	struct zsync_state *zs = read_zsync_control_file(argv[1]);
 	
@@ -55,7 +70,12 @@ int main(int argc, char **argv) {
 	strcpy(fin, argv[2]);
 
 	//Step 2 fill availble local data
+	printf("READING %s\n", fin);
 	read_seed_file(zs, fin);
+	printf("DONE READING\n");
+
+	//Step 3 fix input file
+	fix_input(zs, argv[2], argv[3], argv[4]);
 
 
 	return 1;
