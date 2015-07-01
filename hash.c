@@ -85,9 +85,9 @@ int build_hash(struct rcksum_state *z) {
     for (zs_blockid id = z->blocks; id > 0;) {
         /* Decrement the loop variable here, and get the hash entry. */
         struct hash_entry *e = z->blockhashes + (--id);
-
+	
         /* Prepend to linked list for this hash entry */
-        unsigned h = calc_rhash(z, e);
+        unsigned int h = calc_rhash(z, e);
         e->next = z->rsum_hash[h & z->hashmask];
         z->rsum_hash[h & z->hashmask] = e;
 
