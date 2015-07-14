@@ -231,13 +231,18 @@ void parseAdd(struct rcksum_state *z, FILE *fnew, size_t new_len, upload *u) {
 
 			//Now copy all required bytes
 			size_t left = offset-i;
+
 			while(left) {
-				char x;
-				fread(&x, 1, 1, fnew);
-				u->add(i, 1, &x);
-				left--;
-			};
-			printf("Added %lu bytes at %lu\n", offset-i, i);
+				char *x = (char *)malloc(sizeof(char) * 102400);
+				size_t s = left < 102400 ? left : 102400;
+				fread(x, 1, s, fnew);
+				u->add(i, s, x);
+				free(x);
+
+				left = left - s;
+				i = i+s;
+
+			}
 			i = offset;
 		} 
 
@@ -249,10 +254,11 @@ void parseAdd(struct rcksum_state *z, FILE *fnew, size_t new_len, upload *u) {
 		fseek(fnew, i, SEEK_SET);
 
 		while(i < new_len) {
-			char x;
-			fread(&x, 1, 1, fnew);
-			u->add(i, 1, &x);
-			i++;
+			char *x = (char *)malloc(sizeof(char) * 102400);
+			size_t s = (new_len - i) < 102400 ? (new_len - i) : 102400;
+			fread(x, 1, s, fnew);
+			u->add(i, s, x);
+			i = i+s;
 		}
 	}
 }
@@ -262,21 +268,29 @@ void parseMove(struct rcksum_state *z, upload *u) {
 		long long move = it->first;
 		list<size_t> offsets = it->second;
 
-		
+		printf("%lu\n", offsets.size());
 		for(auto it2 = offsets.begin(); it2 != offsets.end(); it2++) {
 			size_t offset = *it2;
 
-			//size_t num = 1;
-			//size_t prev = offset;
+			size_t num = 1;
+			size_t prev = offset;
 
 			auto it3 = it2;
 			it3++;
 
-			if ( (*it3) == offset + 2048) {
-				printf("CONCAT!!!\n");
+			while ( it3 != offsets.end() && (*it3) == prev + 2048 ) {
+				prev = (*it3);
+				it3++;
+				num++;
 			}
-			
-			u->move(offset, offset+move, 2048);
+
+			it2 = it3;
+
+			u->move(offset, offset+move, 2048 * num);
+
+			if (it2 == offsets.end()) {
+				break;
+			}
 		}
 	}
 }
