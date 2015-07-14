@@ -19,6 +19,8 @@
 #include <stdio.h>
 #include <sys/types.h>
 
+#include "upload.h"
+
 struct rcksum_state;
 
 typedef int zs_blockid;
@@ -40,5 +42,5 @@ int rcksum_submit_source_file(struct rcksum_state* z, FILE* f);
 /* For preparing rcksum control files - in both cases len is the block size. */
 struct rsum __attribute__((pure)) rcksum_calc_rsum_block(const unsigned char* data, size_t len);
 void rcksum_calc_checksum(unsigned char *c, const unsigned char* data, size_t len);
-void parseAdd(struct rcksum_state *z, FILE *fnew, FILE *fout, size_t ne_len);
-void parseMove(struct rcksum_state *z, FILE *fout, FILE *forig);
+void parseAdd(struct rcksum_state *z, FILE *fnew, size_t ne_len, upload *u);
+void parseMove(struct rcksum_state *z, upload *u);

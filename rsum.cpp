@@ -217,7 +217,7 @@ int rcksum_submit_source_file(struct rcksum_state *z, FILE * f) {
 	return got_blocks;
 }
 
-void parseAdd(struct rcksum_state *z, FILE *fnew, FILE *fout, size_t new_len) {
+void parseAdd(struct rcksum_state *z, FILE *fnew, size_t new_len, upload *u) {
 	z->offsets->sort();
 
 	size_t i = 0;
@@ -228,14 +228,13 @@ void parseAdd(struct rcksum_state *z, FILE *fnew, FILE *fout, size_t new_len) {
 		if (offset - i) {
 			//Set read/write pointer at right location
 			fseek(fnew, i, SEEK_SET);
-			fseek(fout, i, SEEK_SET);
 
 			//Now copy all required bytes
 			size_t left = offset-i;
 			while(left) {
-				unsigned char x;
+				char x;
 				fread(&x, 1, 1, fnew);
-				fwrite(&x, 1, 1, fout);
+				u->add(i, 1, &x);
 				left--;
 			};
 			printf("Added %lu bytes at %lu\n", offset-i, i);
@@ -248,31 +247,36 @@ void parseAdd(struct rcksum_state *z, FILE *fnew, FILE *fout, size_t new_len) {
 	//If we just appended the file... fix it here
 	if (i < new_len) {
 		fseek(fnew, i, SEEK_SET);
-		fseek(fout, i, SEEK_SET);
 
 		while(i < new_len) {
-			unsigned char x;
+			char x;
 			fread(&x, 1, 1, fnew);
-			fwrite(&x, 1, 1, fout);
+			u->add(i, 1, &x);
 			i++;
 		}
 	}
 }
 
-void parseMove(struct rcksum_state *z, FILE *fout, FILE *forig) {
+void parseMove(struct rcksum_state *z, upload *u) {
 	for (auto it = z->moves->begin(); it != z->moves->end(); it++) {
 		long long move = it->first;
 		list<size_t> offsets = it->second;
 
+		
 		for(auto it2 = offsets.begin(); it2 != offsets.end(); it2++) {
 			size_t offset = *it2;
-			fseek(forig, offset, SEEK_SET);
-			unsigned char buf[2048];
-			fread(&buf, 1, 2048, forig);
 
-			offset += move;
-			fseek(fout, offset, SEEK_SET);
-			fwrite(&buf, 1, 2048, fout);
+			//size_t num = 1;
+			//size_t prev = offset;
+
+			auto it3 = it2;
+			it3++;
+
+			if ( (*it3) == offset + 2048) {
+				printf("CONCAT!!!\n");
+			}
+			
+			u->move(offset, offset+move, 2048);
 		}
 	}
 }

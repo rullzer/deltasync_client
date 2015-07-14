@@ -214,12 +214,12 @@ int zsync_submit_source_file(struct zsync_state *zs, FILE * f) {
 	return rcksum_submit_source_file(zs->rs, f);
 }
 
-void zsync_parseAdd(struct zsync_state *zs, FILE *fnew, FILE *fout, size_t new_len) {
-	return parseAdd(zs->rs, fnew, fout, new_len);
+void zsync_parseAdd(struct zsync_state *zs, FILE *fnew, size_t new_len, upload *u) {
+	return parseAdd(zs->rs, fnew, new_len, u);
 }
 
-void zsync_parseMove(struct zsync_state *zs, FILE *fout, FILE *forig) {
-	return parseMove(zs->rs, fout, forig);
+void zsync_parseMove(struct zsync_state *zs, upload *u) {
+	return parseMove(zs->rs, u);
 }
 
 /* zsync_complete(self)

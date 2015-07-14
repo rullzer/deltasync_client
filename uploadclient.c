@@ -10,7 +10,10 @@
 #include <openssl/sha.h> 
 #include <arpa/inet.h> 
 
+#include <curl/curl.h>
+
 #include "zsync.h"
+#include "upload.h"
 
 int get_len(FILE * f) {
 	struct stat s;
@@ -40,26 +43,25 @@ void read_seed_file(struct zsync_state *z, const char *fname) {
 	fclose(f);
 }
 
-void fix_input(struct zsync_state *z, const char *nameFnew, const char *nameFout, const char *nameForig) {
+void fix_input(struct zsync_state *z, const char *nameFnew, upload *u) {
 	FILE *fnew = fopen(nameFnew, "r");
-	FILE *fout = fopen(nameFout, "r+");
-	FILE *forig = fopen(nameForig, "r");
 
 	int len = get_len(fnew);
-	ftruncate(fileno(fout), len);
 
-	zsync_parseMove(z, fout, forig);
-	zsync_parseAdd(z, fnew, fout, len);
+	u->start(len);
+
+	zsync_parseMove(z, u);
+	zsync_parseAdd(z, fnew, len, u);
+
+	printf("SHA1: %s\n", u->done());
 
 	fclose(fnew);
-	fclose(fout);
-	fclose(forig);
 }
 
 int main(int argc, char **argv) {
 
 	if (argc < 5) {
-		printf("Usage: %s <file.zsync> <file.new> <file.out> <file>\n", argv[0]);
+		printf("Usage: %s <file.zsync> <file.new> <host> <path> <user> <pass>\n", argv[0]);
 		return 0;
 	}
 
@@ -74,8 +76,13 @@ int main(int argc, char **argv) {
 	read_seed_file(zs, fin);
 	printf("DONE READING\n");
 
+	// Init curl
+	curl_global_init(CURL_GLOBAL_DEFAULT);
+
+	upload *u = new upload(argv[3], argv[5], argv[6], argv[4]);
+
 	//Step 3 fix input file
-	fix_input(zs, argv[2], argv[3], argv[4]);
+	fix_input(zs, argv[2], u);
 
 
 	return 1;

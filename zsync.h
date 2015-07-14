@@ -13,6 +13,8 @@
  *   COPYING file for details.
  */
 
+#include "upload.h"
+
 struct zsync_state;
 
 /* zsync_begin - load a zsync file and return data structure to use for the rest of the process.
@@ -31,5 +33,5 @@ int zsync_complete(struct zsync_state* zs);
  * Returns a strdup()d pointer to the name of the file resulting from the process. */
 char* zsync_end(struct zsync_state* zs);
 
-void zsync_parseAdd(struct zsync_state *zs, FILE *fnew, FILE *fout, size_t new_len);
-void zsync_parseMove(struct zsync_state *zs, FILE *fout, FILE *forig);
+void zsync_parseAdd(struct zsync_state *zs, FILE *fnew, size_t new_len, upload *u);
+void zsync_parseMove(struct zsync_state *zs, upload *u);
